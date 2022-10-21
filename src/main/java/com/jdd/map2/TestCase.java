@@ -42,7 +42,7 @@ public class TestCase {
                 //往下 检查 [2][0] [2][1] [2][2]
 
                 //计算移动后的坐标
-                
+
 
 
 
@@ -67,11 +67,11 @@ public class TestCase {
     }
 
 
-    private String[][] move(String[][] needMove){
+    private String[][] move(String[][] needMovedata,int direct){
 
 
 
-        return needMove;
+        return needMovedata;
     }
 
 
