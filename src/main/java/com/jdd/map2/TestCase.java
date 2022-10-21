@@ -16,6 +16,9 @@ public class TestCase {
     String xMax = "200";
     String yMax = "500";
 
+    final static int xMaxIndex = 199;
+    final static int yMaxIndex = 499;
+
     /**
      * 140 70 140 71 140 72
      * 141 70 141 71 141 72
@@ -137,15 +140,29 @@ public class TestCase {
             index = 1;
             increment = 1;
         } else {
-            return null;
+            return needMovedata;
         }
         String[][] newLocation = new String[3][3];
 
         int firstIndex = 0;
         for (String[] needMovedatum : needMovedata) {
-            newLocation[firstIndex][0] = getNewLocation(needMovedatum[0], index, increment);
-            newLocation[firstIndex][1] = getNewLocation(needMovedatum[1], index, increment);
-            newLocation[firstIndex][2] = getNewLocation(needMovedatum[2], index, increment);
+            String num = getNewLocation(needMovedatum[0], index, increment);
+            if (num == null) {
+                return null;
+            }
+            newLocation[firstIndex][0] = num;
+
+            num = getNewLocation(needMovedatum[1], index, increment);
+            if (num == null) {
+                return null;
+            }
+            newLocation[firstIndex][1] = num;
+
+            num = getNewLocation(needMovedatum[2], index, increment);
+            if (num == null) {
+                return null;
+            }
+            newLocation[firstIndex][2] = num;
             firstIndex++;
         }
 
@@ -154,7 +171,18 @@ public class TestCase {
 
     private static String getNewLocation(String oldLocation, int index, int increment) {
         String[] split = oldLocation.split(",");
-        split[index] = String.valueOf(Integer.parseInt(split[index]) + increment);
+        int newLocation = Integer.parseInt(split[index]) + increment;
+        if (index == 0) {
+            if (newLocation < 0 || newLocation > xMaxIndex) {
+                return null;
+            }
+        } else if (index == 1) {
+            if (newLocation < 0 || newLocation > yMaxIndex) {
+                return null;
+            }
+        }
+
+        split[index] = String.valueOf(newLocation);
         return String.format("%s,%s", split[0], split[1]);
     }
 
