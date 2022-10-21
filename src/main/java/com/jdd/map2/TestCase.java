@@ -139,14 +139,17 @@ public class TestCase {
         } else {
             return null;
         }
+        String[][] newLocation = new String[3][3];
 
+        int firstIndex = 0;
         for (String[] needMovedatum : needMovedata) {
-            needMovedatum[0] = getNewLocation(needMovedatum[0], index, increment);
-            needMovedatum[1] = getNewLocation(needMovedatum[1], index, increment);
-            needMovedatum[2] = getNewLocation(needMovedatum[2], index, increment);
+            newLocation[firstIndex][0] = getNewLocation(needMovedatum[0], index, increment);
+            newLocation[firstIndex][1] = getNewLocation(needMovedatum[1], index, increment);
+            newLocation[firstIndex][2] = getNewLocation(needMovedatum[2], index, increment);
+            firstIndex++;
         }
 
-        return needMovedata;
+        return newLocation;
     }
 
     private static String getNewLocation(String oldLocation, int index, int increment) {
