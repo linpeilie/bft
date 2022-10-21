@@ -35,6 +35,11 @@ public class TestCase {
         blockSet.add("151,71");
         blockSet.add("199,499");
         blockSet.add("99,299");
+
+        for (int i = 0; i < 199 ; i++) {
+            blockSet.add((i + 1) +"," + 100);
+        }
+
         int loop = 20000;
         boolean flag = true;
         while (flag) {
@@ -140,7 +145,39 @@ public class TestCase {
                 ){
                     return false;
                 }
-
+            case 3:
+                if(blockSet.contains(newPoint[0][0])
+                        ||
+                        blockSet.contains(newPoint[1][0])
+                        ||
+                        blockSet.contains(newPoint[2][0])
+                        ||
+                        newPoint[0][0].split(",")[1].equals("0")
+                ){
+                    return false;
+                }
+            case 2:
+                if(blockSet.contains(newPoint[2][0])
+                        ||
+                        blockSet.contains(newPoint[2][1])
+                        ||
+                        blockSet.contains(newPoint[2][2])
+                        ||
+                        newPoint[2][0].split(",")[1].equals("199")
+                ){
+                    return false;
+                }
+            case 1:
+                if(blockSet.contains(newPoint[0][0])
+                        ||
+                        blockSet.contains(newPoint[0][1])
+                        ||
+                        blockSet.contains(newPoint[0][2])
+                        ||
+                        newPoint[0][0].split(",")[1].equals("0")
+                ){
+                    return false;
+                }
         }
         return true;
     }
@@ -197,7 +234,10 @@ public class TestCase {
 
 
     public static void main(String[] args) {
-        func();
+        //func();
+        for (int i = 0; i < 199 ; i++) {
+            System.out.println((i + 1) +"," + 100);
+        }
     }
 
 
