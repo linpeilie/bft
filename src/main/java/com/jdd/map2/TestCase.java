@@ -41,7 +41,16 @@ public class TestCase {
                 //往上 检查 [0][0] [0][1] [0][2]
                 //往下 检查 [2][0] [2][1] [2][2]
 
-                //计算移动后的坐标
+                //计算移动后的坐标 1上2下3左4右
+                String[][] newPoint = move(init, 4);
+
+                if(blockSet.contains(newPoint[0][2])
+                    ||
+                   blockSet.contains(newPoint[1][2])
+                    ||
+                   blockSet.contains(newPoint[2][2])
+                ){
+                    //change direct
 
 
 
@@ -51,14 +60,13 @@ public class TestCase {
 
 
 
+                }else{
+                    init = newPoint;
+                    
+                    //log 坐标
 
 
-
-
-
-
-
-
+                }
                 loop--;
             }
         }
@@ -67,7 +75,7 @@ public class TestCase {
     }
 
 
-    private String[][] move(String[][] needMovedata,int direct){
+    private static String[][] move(String[][] needMovedata,int direct){
 
 
 
