@@ -17,24 +17,39 @@ public class AlgorithmMapInfo {
     /**
      * 行数
      */
-    private static final int LINE_NUM = 500;
+    public static final int LINE_NUM = 500;
 
     /**
      * 列数
      */
-    private static final int COL_NUM = 200;
+    public static final int COL_NUM = 200;
+
+    /**
+     * 初始点
+     */
+    public static final Coordinate INIT_POINT = new Coordinate(141,71);
 
     /**
      * 点数据，前8位点权重值，后4位是方向
      */
     private int[][] pointData;
 
-    public AlgorithmMapInfo() {
+    private static final AlgorithmMapInfo INSTANCE = new AlgorithmMapInfo();
+
+    private AlgorithmMapInfo() {
         this.pointData = new int[LINE_NUM][COL_NUM];
+    }
+
+    public static AlgorithmMapInfo getInstance() {
+        return INSTANCE;
+    }
+
+    public void reset() {
         // 设置默认权重值
         for (int i = 0; i < LINE_NUM; i++) {
             for (int j = 0; j < COL_NUM; j++) {
                 setWeight(j, i, DEFAULT_WEIGHT);
+                setDir(j, i, 15);
             }
         }
     }

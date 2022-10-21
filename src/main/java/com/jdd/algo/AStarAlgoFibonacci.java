@@ -32,7 +32,8 @@ public class AStarAlgoFibonacci {
         AlgorithmNode node = new AlgorithmNode(src);
         node.setT(0);
         node.setG(0);
-        node.setH(PointHelper.getManhattanDistance(src, des));
+        // 将距离的权重调高，防止提前转弯
+        node.setH(PointHelper.getManhattanDistance(src, des) * 3);
 
         vertexToNodeMap.put(node.getPoint(), null);
 

@@ -1,7 +1,6 @@
 package com.jdd.helper;
 
 import com.jdd.domain.Coordinate;
-import com.jdd.domain.Point;
 import com.jdd.enums.PointDirectionEnum;
 
 public final class PointHelper {
@@ -73,17 +72,6 @@ public final class PointHelper {
      * @return 曼哈顿距离
      */
     public static int getManhattanDistance(Coordinate srcPoint, Coordinate desPoint) {
-        return getManhattanDistance(srcPoint.getX(), srcPoint.getY(), desPoint.getX(), desPoint.getY());
-    }
-
-    /**
-     * 计算曼哈顿距离
-     *
-     * @param srcPoint 起点
-     * @param desPoint 终点
-     * @return 起点到终点的曼哈顿距离
-     */
-    public static int getManhattanDistance(Point srcPoint, Point desPoint) {
         return getManhattanDistance(srcPoint.getX(), srcPoint.getY(), desPoint.getX(), desPoint.getY());
     }
 

@@ -1,6 +1,6 @@
 package com.jdd.map;
 
-import com.jdd.domain.Point;
+import com.jdd.domain.Coordinate;
 import lombok.Data;
 
 import java.util.List;
@@ -15,6 +15,6 @@ public class Map {
     /**
      * 障碍点
      */
-    private List<Point> barriers;
+    private List<Coordinate> barriers;
 
 }
