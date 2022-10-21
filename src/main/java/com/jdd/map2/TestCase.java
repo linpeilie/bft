@@ -37,7 +37,7 @@ public class TestCase {
         blockSet.add("99,299");
 
         for (int i = 0; i < 199 ; i++) {
-            blockSet.add((i + 1) +"," + 100);
+            blockSet.add((i + 1) +"," + 130);
         }
 
         int loop = 20000;
