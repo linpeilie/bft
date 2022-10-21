@@ -41,6 +41,13 @@ public class TestCase {
                 //往上 检查 [0][0] [0][1] [0][2]
                 //往下 检查 [2][0] [2][1] [2][2]
 
+                //计算移动后的坐标
+                
+
+
+
+
+
 
 
 
@@ -59,6 +66,13 @@ public class TestCase {
 
     }
 
+
+    private String[][] move(String[][] needMove){
+
+
+
+        return needMove;
+    }
 
 
 
