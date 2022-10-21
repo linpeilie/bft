@@ -4,6 +4,11 @@ package com.jdd.map2;
 import java.util.*;
 
 public class TestCase {
+    int up = 1;
+    int down = 2;
+    int left = 3;
+    int right = 4;
+
 
     String x = "141";
     String y = "72";
@@ -112,11 +117,42 @@ public class TestCase {
     }
 
 
-    private static String[][] move(String[][] needMovedata,int direct){
+    private static String[][] move(String[][] needMovedata, int direct) {
+        int index;
+        int increment;
+        if (direct == 1) {
+            // 向上x-1
+            index = 0;
+            increment = -1;
+        } else if (direct == 2) {
+            // 向下x+1
+            index = 0;
+            increment = 1;
+        } else if (direct == 3) {
+            // 向左y-1
+            index = 1;
+            increment = -1;
+        } else if (direct == 4) {
+            // 向右y+1
+            index = 1;
+            increment = 1;
+        } else {
+            return null;
+        }
 
-
+        for (String[] needMovedatum : needMovedata) {
+            needMovedatum[0] = getNewLocation(needMovedatum[0], index, increment);
+            needMovedatum[1] = getNewLocation(needMovedatum[1], index, increment);
+            needMovedatum[2] = getNewLocation(needMovedatum[2], index, increment);
+        }
 
         return needMovedata;
+    }
+
+    private static String getNewLocation(String oldLocation, int index, int increment) {
+        String[] split = oldLocation.split(",");
+        split[index] = String.valueOf(Integer.parseInt(split[index]) + increment);
+        return String.format("%s,%s", split[0], split[1]);
     }
 
 
