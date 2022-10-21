@@ -1,16 +1,15 @@
 package com.jdd.map2;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Stack;
+
+import java.util.*;
 
 public class TestCase {
 
-    int x = 141;
-    int y = 72;
+    String x = "141";
+    String y = "72";
 
-    int xMax = 200;
-    int yMax = 500;
+    String xMax = "200";
+    String yMax = "500";
 
     /**
      * 140 70 140 71 140 72
@@ -26,7 +25,7 @@ public class TestCase {
 
         Set<String> blockSet = new HashSet<>();
         Set<String> hasClean = new HashSet<>();
-        Stack<String> goBack = new Stack<>();
+        Stack<Map<String,String>> goBack = new Stack<>();
         blockSet.add("139,71");
         blockSet.add("151,71");
         blockSet.add("199,499");
@@ -43,14 +42,22 @@ public class TestCase {
 
                 //计算移动后的坐标 1上2下3左4右
                 String[][] newPoint = move(init, 4);
-
-                if(blockSet.contains(newPoint[0][2])
-                    ||
-                   blockSet.contains(newPoint[1][2])
-                    ||
-                   blockSet.contains(newPoint[2][2])
-                ){
+                if(checkPoint(newPoint,4,blockSet)){
                     //change direct
+
+                    //new move
+                    newPoint = move(init,3);
+                    if(!checkPoint(newPoint,3,blockSet)){
+                        //change direct
+
+                        newPoint = move(init,2);
+                        if(!checkPoint(newPoint,2,blockSet)){
+                            newPoint = move(init,1);
+                            if(!checkPoint(newPoint,1,blockSet)){
+                                break;
+                            }
+                        }
+                    }
 
 
 
@@ -61,16 +68,46 @@ public class TestCase {
 
 
                 }else{
+                    String[][] oldPoint = init;
                     init = newPoint;
-                    
+
                     //log 坐标
-
-
+                    hasClean.add(newPoint[1][2]);
+                    //坐标放入stack
+                    String[][] finalNewPoint = newPoint;
+                    goBack.push(new HashMap<String,String>(){{
+                        put("dir","3");
+                        put("back", finalNewPoint[1][2]);
+                    }});
                 }
                 loop--;
             }
         }
 
+
+    }
+
+    //false 表示转向
+    private static boolean checkPoint(String[][] newPoint,int dir,Set<String> blockSet){
+        switch (dir){
+            case 4:
+                if(blockSet.contains(newPoint[0][2])
+                        ||
+                        blockSet.contains(newPoint[1][2])
+                        ||
+                        blockSet.contains(newPoint[2][2])
+                        ||
+                        newPoint[0][2].split(",")[1].equals("500")
+                ){
+                    return false;
+                }
+
+        }
+        return true;
+    }
+
+
+    private void logFile(String file){
 
     }
 
@@ -81,6 +118,7 @@ public class TestCase {
 
         return needMovedata;
     }
+
 
 
 
