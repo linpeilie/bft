@@ -125,7 +125,7 @@ public class TestCase {
                     String[][] finalNewPoint = newPoint;
                     goBack.push(new HashMap<String,String>(){{
                         put("dir","4");
-                        put("back", finalNewPoint[1][2]);··
+                        put("back", finalNewPoint[1][2]);
                     }});
                 }
                 loop--;
