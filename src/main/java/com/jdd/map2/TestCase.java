@@ -55,6 +55,7 @@ public class TestCase {
 
                 //计算移动后的坐标 1上2下3左4右
                 String[][] newPoint = move(init, 4);
+
                 if(checkPoint(newPoint,4,blockSet)){
                     //change direct
 
@@ -124,7 +125,7 @@ public class TestCase {
                     String[][] finalNewPoint = newPoint;
                     goBack.push(new HashMap<String,String>(){{
                         put("dir","4");
-                        put("back", finalNewPoint[1][2]);
+                        put("back", finalNewPoint[1][2]);··
                     }});
                 }
                 loop--;
@@ -136,6 +137,9 @@ public class TestCase {
 
     //false 表示转向
     private static boolean checkPoint(String[][] newPoint,int dir,Set<String> blockSet){
+        if(newPoint == null){
+            return false;
+        }
         switch (dir){
             case 4:
                 if(blockSet.contains(newPoint[0][2])
@@ -262,10 +266,10 @@ public class TestCase {
 
 
     public static void main(String[] args) {
-        //func();
-        for (int i = 0; i < 199 ; i++) {
-            System.out.println((i + 1) +"," + 100);
-        }
+        func();
+//        for (int i = 0; i < 199 ; i++) {
+//            System.out.println((i + 1) +"," + 130);
+//        }
     }
 
 
