@@ -10,7 +10,6 @@ public class RoutePoint {
 
     private int x;
     private int y;
-    private TaskTypeEnum type;
     private int direction;
     private List<Coordinate> cleanPoints;
 

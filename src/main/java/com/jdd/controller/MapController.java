@@ -1,12 +1,9 @@
 package com.jdd.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.date.StopWatch;
-import cn.hutool.core.date.TemporalAccessorUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONUtil;
 import com.jdd.algo.AStarAlgoFibonacci;
 import com.jdd.domain.AlgorithmMapInfo;
 import com.jdd.domain.Coordinate;
@@ -15,22 +12,19 @@ import com.jdd.domain.Task;
 import com.jdd.enums.PointDirectionEnum;
 import com.jdd.enums.TaskTypeEnum;
 import com.jdd.helper.PointHelper;
-import com.sun.org.apache.bcel.internal.generic.IFLE;
-import com.sun.xml.internal.org.jvnet.fastinfoset.sax.EncodingAlgorithmContentHandler;
-import javafx.scene.layout.CornerRadii;
-import jdk.nashorn.internal.runtime.linker.LinkerCallSite;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.websocket.PongMessage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping(value = "/map")
@@ -54,7 +48,7 @@ public class MapController {
             while (br.ready()) {
                 int[] arr = StrUtil.splitToInt(br.readLine(), ",");
                 if (ArrayUtil.isNotEmpty(arr) && arr.length == 2) {
-                    barriers.add(new Coordinate(arr[0], arr[1]));
+                    barriers.add(Coordinate.valueOf(arr[0], arr[1]));
                 }
             }
             // 重置地图
@@ -62,34 +56,37 @@ public class MapController {
             algorithmMap.reset();
             // 设置障碍物单元格周围点方向
             for (Coordinate barrier : barriers) {
-                // 周围八个点
+                // 周围十二个点
                 List<Coordinate> surrounding = new ArrayList<>();
-                surrounding.add(new Coordinate(barrier.getX(), barrier.getY() - 1));
-                surrounding.add(new Coordinate(barrier.getX(), barrier.getY() + 1));
-                surrounding.add(new Coordinate(barrier.getX() - 1, barrier.getY()));
-                surrounding.add(new Coordinate(barrier.getX() + 1, barrier.getY()));
+                surrounding.add(Coordinate.valueOf(barrier.getX(), barrier.getY() - 1));
+                surrounding.add(Coordinate.valueOf(barrier.getX(), barrier.getY() + 1));
+                surrounding.add(Coordinate.valueOf(barrier.getX() - 1, barrier.getY()));
+                surrounding.add(Coordinate.valueOf(barrier.getX() + 1, barrier.getY()));
+                surrounding.add(Coordinate.valueOf(barrier.getX() + 1, barrier.getY() + 1));
+                surrounding.add(Coordinate.valueOf(barrier.getX() - 1, barrier.getY() + 1));
+                surrounding.add(Coordinate.valueOf(barrier.getX() + 1, barrier.getY() - 1));
+                surrounding.add(Coordinate.valueOf(barrier.getX() - 1, barrier.getY() - 1));
                 surrounding.forEach(point -> {
                     algorithmMap.setDir(point.getX(), point.getY(), PointDirectionEnum.NONE.getDirection());
                 });
                 surrounding.clear();
 
-
-                surrounding.add(new Coordinate(barrier.getX(), barrier.getY() - 2));
-                surrounding.add(new Coordinate(barrier.getX(), barrier.getY() + 2));
-                surrounding.add(new Coordinate(barrier.getX() - 2, barrier.getY()));
-                surrounding.add(new Coordinate(barrier.getX() + 2, barrier.getY()));
+                surrounding.add(Coordinate.valueOf(barrier.getX(), barrier.getY() - 2));
+                surrounding.add(Coordinate.valueOf(barrier.getX(), barrier.getY() + 2));
+                surrounding.add(Coordinate.valueOf(barrier.getX() - 2, barrier.getY()));
+                surrounding.add(Coordinate.valueOf(barrier.getX() + 2, barrier.getY()));
                 surrounding.forEach(point -> {
                     algorithmMap.descDir(point.getX(), point.getY(), PointHelper.getDirBetweenTwoPoints(point, barrier));
                 });
+
+                surrounding.clear();
             }
             // 设置障碍物
             barriers.forEach(barrier -> {
                 algorithmMap.setObstacle(barrier.getX(), barrier.getY());
-                // 设置障碍物周围单元格方向
-
             });
             // 设置初始点的方向
-            algorithmMap.setDir(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY(), PointDirectionEnum.WEST.getDirection());
+            algorithmMap.setDir(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY(), PointDirectionEnum.NORTH.getDirection());
             // 输出地图结构
             printMap(algorithmMap);
             System.out.println("====================================================================================================================");
@@ -100,13 +97,7 @@ public class MapController {
             // 清除边界方向
             cleanBorderDirection(algorithmMap);
 
-            List<RoutePoint> routePoints = matchTask(algorithmMap);
-
-            File tempFile = FileUtil.createTempFile(new File("result.txt"), true);
-            routePoints.forEach(routePoint -> {
-                String line = transLine(routePoint);
-                FileUtil.appendString(line, tempFile , StandardCharsets.UTF_8);
-            });
+            matchTask(algorithmMap);
 
         } catch (Exception e) {
             log.error("解析文件异常", e);
@@ -139,19 +130,16 @@ public class MapController {
     }
 
     private String transLine(RoutePoint routePoint) {
-        StringBuilder result = new StringBuilder(PointDirectionEnum.getEnumByDirection(routePoint.getDirection()).getOutputDirection())
-                .append(":")
-                .append(routePoint.getX())
-                .append(",")
-                .append(routePoint.getY())
-                .append(":");
-        int size = routePoint.getCleanPoints().size();
-        for (int i = 0; i < size; i++) {
-            result.append(routePoint.getX())
-                    .append(",")
-                    .append(routePoint.getY());
-            if (i != size - 1) {
-                result.append(";");
+        StringBuilder result = new StringBuilder().append(PointDirectionEnum.getEnumByDirection(routePoint.getDirection()).getOutputDirection()).append(":").append(routePoint.getX()).append(",").append(routePoint.getY()).append(":");
+        if (CollectionUtil.isNotEmpty(routePoint.getCleanPoints())) {
+            int size = routePoint.getCleanPoints().size();
+            for (int i = 0; i < size; i++) {
+                result.append(routePoint.getCleanPoints().get(i).getX())
+                        .append(",")
+                        .append(routePoint.getCleanPoints().get(i).getY());
+                if (i != size - 1) {
+                    result.append(";");
+                }
             }
         }
         return result.toString();
@@ -182,7 +170,7 @@ public class MapController {
                 if (mapInfo.isObstacle(x, y)) {
                     continue;
                 }
-                if (!noObstaclePoints.contains(new Coordinate(x, y))) {
+                if (!noObstaclePoints.contains(Coordinate.valueOf(x, y))) {
                     mapInfo.setObstacle(x, y);
                 }
             }
@@ -215,13 +203,12 @@ public class MapController {
         return canArchivePoints;
     }
 
-    private Set<Coordinate> getCanArchivePoints(AlgorithmMapInfo mapInfo, Coordinate currentPoint,
-                                                Set<Coordinate> canArchivePoints) {
+    private Set<Coordinate> getCanArchivePoints(AlgorithmMapInfo mapInfo, Coordinate currentPoint, Set<Coordinate> canArchivePoints) {
         Set<Coordinate> set = new HashSet<>();
-        Coordinate p1 = new Coordinate(currentPoint.getX() - 1, currentPoint.getY());
-        Coordinate p2 = new Coordinate(currentPoint.getX() + 1, currentPoint.getY());
-        Coordinate p3 = new Coordinate(currentPoint.getX(), currentPoint.getY() - 1);
-        Coordinate p4 = new Coordinate(currentPoint.getX(), currentPoint.getY() + 1);
+        Coordinate p1 = Coordinate.valueOf(currentPoint.getX() - 1, currentPoint.getY());
+        Coordinate p2 = Coordinate.valueOf(currentPoint.getX() + 1, currentPoint.getY());
+        Coordinate p3 = Coordinate.valueOf(currentPoint.getX(), currentPoint.getY() - 1);
+        Coordinate p4 = Coordinate.valueOf(currentPoint.getX(), currentPoint.getY() + 1);
         if (!mapInfo.isObstacle(p1.getX(), p1.getY()) && !canArchivePoints.contains(p1)) {
             set.add(p1);
         }
@@ -239,57 +226,112 @@ public class MapController {
 
     private List<RoutePoint> matchTask(AlgorithmMapInfo mapInfo) {
         int passed = 0;
-        int currentDirection = PointDirectionEnum.WEST.getDirection();
+        int currentDirection = PointDirectionEnum.NORTH.getDirection();
         // 当前点
-        Coordinate currentCoordinate = new Coordinate(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY());
+        Coordinate currentCoordinate = Coordinate.valueOf(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY());
         List<RoutePoint> routePoints = new ArrayList<>();
         // 先让车辆前往最右边的点
         for (int x = AlgorithmMapInfo.COL_NUM - 1; x > currentCoordinate.getX(); x--) {
-            boolean obstacle = mapInfo.isObstacle(x, currentCoordinate.getY());
+            boolean obstacle = mapInfo.isObstacle(x, currentCoordinate.getY() + 1);
             if (obstacle) {
                 continue;
             }
-            Coordinate dest = new Coordinate(x, currentCoordinate.getY());
+            Coordinate dest = Coordinate.valueOf(x, currentCoordinate.getY() + 1);
             List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
             if (CollectionUtil.isEmpty(path) || path.size() == 1) {
                 continue;
             }
             // 找到之后
             Task task = initTask(path, currentDirection, TaskTypeEnum.CLEANING);
+            passed = addRoute(routePoints, passed, task, mapInfo);
             // 当前方向
             currentDirection = task.getRoutePoints().get(task.getRoutePoints().size() - 1).getDirection();
             // 当前点
             currentCoordinate = dest;
             break;
         }
-
+        boolean isRight = true;
         // 初始化y轴上部分任务
-        for (int y = AlgorithmMapInfo.INIT_POINT.getY() - 3; y >= 0; y -= 3) {
-            List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate);
+        for (int y = AlgorithmMapInfo.INIT_POINT.getY() + 4; y <= AlgorithmMapInfo.LINE_NUM; y += 3) {
+            System.out.println("当前y" + y);
+            List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate, isRight);
             if (CollectionUtil.isEmpty(nextTasks)) {
                 break;
             }
+            isRight = !isRight;
             for (Task nextTask : nextTasks) {
                 passed = addRoute(routePoints, passed, nextTask, mapInfo);
             }
+            Task lastTask = nextTasks.get(nextTasks.size() - 1);
+            currentCoordinate = lastTask.getDes();
         }
         // 初始化y轴下部分任务
-        for (int y = AlgorithmMapInfo.INIT_POINT.getY(); y <= AlgorithmMapInfo.LINE_NUM; y += 3) {
-            List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate);
+        for (int y = AlgorithmMapInfo.INIT_POINT.getY(); y >= 0; y -= 3) {
+            System.out.println("当前y" + y);
+            List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate, isRight);
             if (CollectionUtil.isEmpty(nextTasks)) {
                 break;
             }
+            isRight = !isRight;
             for (Task nextTask : nextTasks) {
                 passed = addRoute(routePoints, passed, nextTask, mapInfo);
             }
+            Task lastTask = nextTasks.get(nextTasks.size() - 1);
+            currentCoordinate = lastTask.getDes();
         }
+        appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
         // 添加回程任务
         RoutePoint currentPoint = routePoints.get(routePoints.size() - 1);
-        List<Coordinate> backPath = AStarAlgoFibonacci.getShortestPath(new Coordinate(currentPoint.getX(), currentPoint.getY()), AlgorithmMapInfo.INIT_POINT, mapInfo);
+        routePoints.clear();
+        appendResult(routePoints, TaskTypeEnum.CHARGE.getType());
+        List<Coordinate> backPath = AStarAlgoFibonacci.getShortestPath(Coordinate.valueOf(currentPoint.getX(), currentPoint.getY()), AlgorithmMapInfo.INIT_POINT, mapInfo);
         Task backTask = initTask(backPath, currentPoint.getDirection(), TaskTypeEnum.BACK);
-        routePoints.addAll(backTask.getRoutePoints());
+        List<RoutePoint> backRoutePoints = backTask.getRoutePoints();
+        routePoints.addAll(backRoutePoints);
+        // 获取当前方向
+        RoutePoint lastRoutePoint = backRoutePoints.get(backRoutePoints.size() - 1);
+        routePoints.add(initRoutePoint(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY(),
+                TaskTypeEnum.BACK, lastRoutePoint.getDirection()));
+        appendResult(routePoints, TaskTypeEnum.BACK.getType());
         return routePoints;
     }
+
+    private void appendResult(List<RoutePoint> routePoints, int type) {
+        String bashPath = getResourceBasePath();
+        File resultFile = new File(bashPath, "result.txt");
+        System.out.println("写入任务类型 : " + type + "，写入数据数量 : " + routePoints.size());
+        if (TaskTypeEnum.BACK.getType() != type) {
+            FileUtil.appendString(type + "\n", resultFile, StandardCharsets.UTF_8);
+        }
+        for (RoutePoint routePoint : routePoints) {
+            String line = transLine(routePoint) + "\n";
+            FileUtil.appendString(line, resultFile, StandardCharsets.UTF_8);
+        }
+        if (TaskTypeEnum.BACK.getType() == type) {
+            FileUtil.appendString(type + "", resultFile, StandardCharsets.UTF_8);
+        }
+    }
+
+
+    private static String getResourceBasePath() {
+        // 获取跟目录
+        File path = null;
+        try {
+            path = new File(ResourceUtils.getURL("classpath:").getPath());
+        } catch (FileNotFoundException e) {
+            // nothing to do
+        }
+        if (path == null || !path.exists()) {
+            path = new File("");
+        }
+
+        String pathStr = path.getAbsolutePath();
+        // 如果是在eclipse中运行，则和target同级目录,如果是jar部署到服务器，则默认和jar包同级
+        pathStr = pathStr.replace("\\target\\classes", "");
+
+        return pathStr;
+    }
+
 
     private int addRoute(List<RoutePoint> routePoints, int passedPoints, Task task, AlgorithmMapInfo mapInfo) {
         int passed = passedPoints;
@@ -298,25 +340,30 @@ public class MapController {
             passed++;
             // 两万
             if (routePoints.size() % 20000 == 0) {
+                // 写入文件
+                appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
+                routePoints.clear();
                 // 添加回去的任务
-                Coordinate tempPoint = new Coordinate(routePoint.getX(), routePoint.getY());
+                Coordinate tempPoint = Coordinate.valueOf(routePoint.getX(), routePoint.getY());
                 Coordinate initPoint = AlgorithmMapInfo.INIT_POINT;
                 List<Coordinate> chargePath = AStarAlgoFibonacci.getShortestPath(tempPoint, initPoint, mapInfo);
                 Task chargeTask = initTask(chargePath, routePoint.getDirection(), TaskTypeEnum.CHARGE);
                 List<RoutePoint> chargeTaskRoutePoints = chargeTask.getRoutePoints();
                 routePoints.addAll(chargeTaskRoutePoints);
+                appendResult(routePoints, TaskTypeEnum.CHARGE.getType());
+                routePoints.clear();
                 passed = 0;
                 // 获取回去后最后一个点的方向
                 int initPointDirection = chargeTaskRoutePoints.get(chargeTaskRoutePoints.size() - 1).getDirection();
-                // 如果不是西的话，则，添加一个向西的指令
-                if (initPointDirection != PointDirectionEnum.WEST.getDirection()) {
-                    RoutePoint initPointTurn = initRoutePoint(initPoint.getX(), initPoint.getY(), TaskTypeEnum.CLEANING, PointDirectionEnum.WEST.getDirection());
+                // 如果不是西的话，则，添加一个向东的指令
+                if (initPointDirection != PointDirectionEnum.NORTH.getDirection()) {
+                    RoutePoint initPointTurn = initRoutePoint(initPoint.getX(), initPoint.getY(), TaskTypeEnum.CLEANING, PointDirectionEnum.NORTH.getDirection());
                     routePoints.add(initPointTurn);
                     passed++;
                 }
                 // 再获取回来的路径
                 List<Coordinate> backTaskPath = AStarAlgoFibonacci.getShortestPath(initPoint, tempPoint, mapInfo);
-                Task backCleanTask = initTask(backTaskPath, PointDirectionEnum.WEST.getDirection(), TaskTypeEnum.CLEANING);
+                Task backCleanTask = initTask(backTaskPath, PointDirectionEnum.NORTH.getDirection(), TaskTypeEnum.CLEANING);
                 passed = addRoute(routePoints, passed, backCleanTask, mapInfo);
                 // 获取最后到达的方向
                 List<RoutePoint> backCleanPath = backCleanTask.getRoutePoints();
@@ -332,8 +379,7 @@ public class MapController {
         return passed;
     }
 
-    private List<Task> getNextTask(AlgorithmMapInfo mapInfo, int currentY, int currentDirection, Coordinate currentCoordinate) {
-        boolean isRight = currentDirection == PointDirectionEnum.WEST.getDirection();
+    private List<Task> getNextTask(AlgorithmMapInfo mapInfo, int currentY, int currentDirection, Coordinate currentCoordinate, boolean isRight) {
         List<Task> tasks = new ArrayList<>();
         if (isRight) {
             // 先到达当前点
@@ -342,47 +388,53 @@ public class MapController {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
-                Coordinate dest = new Coordinate(x, currentY);
+                Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
                     continue;
                 }
+                currentCoordinate = path.get(path.size() - 1);
                 tasks.add(initTask(path, currentDirection, TaskTypeEnum.CLEANING));
+                break;
             }
             // 再找到最另外一侧坐标点
             for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
-                Coordinate dest = new Coordinate(x, currentY);
+                Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
                     continue;
                 }
                 tasks.add(initTask(path, currentDirection, TaskTypeEnum.CLEANING));
+                break;
             }
         } else {
             for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
-                Coordinate dest = new Coordinate(x, currentY);
+                Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
                     continue;
                 }
+                currentCoordinate = path.get(path.size() - 1);
                 tasks.add(initTask(path, currentDirection, TaskTypeEnum.CLEANING));
+                break;
             }
             for (int x = AlgorithmMapInfo.COL_NUM - 1; x >= 0; x--) {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
-                Coordinate dest = new Coordinate(x, currentY);
+                Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
                     continue;
                 }
                 tasks.add(initTask(path, currentDirection, TaskTypeEnum.CLEANING));
+                break;
             }
         }
         return tasks;
@@ -396,6 +448,8 @@ public class MapController {
         for (int i = 0; i < path.size() - 1; i++) {
             // 如果是第一个点，需要判断是否需要转弯
             Coordinate currentPoint = path.get(i);
+            // 减轻当前点权重
+            AlgorithmMapInfo.getInstance().increWeight(currentPoint.getX(), currentPoint.getY(), 1);
             Coordinate nextPoint = path.get(i + 1);
             int nextDirection = PointHelper.getDirBetweenTwoPoints(currentPoint, nextPoint);
             // 如果需要转弯
@@ -420,10 +474,9 @@ public class MapController {
         RoutePoint routePoint = new RoutePoint();
         routePoint.setX(x);
         routePoint.setY(y);
-        routePoint.setType(taskType);
         routePoint.setDirection(direction);
         if (TaskTypeEnum.CLEANING.equals(taskType)) {
-            routePoint.setCleanPoints(calcCleanPoint(new Coordinate(x, y), direction));
+            routePoint.setCleanPoints(calcCleanPoint(Coordinate.valueOf(x, y), direction));
         }
         return routePoint;
     }
@@ -432,16 +485,14 @@ public class MapController {
         int currentX = currentPoint.getX();
         int currentY = currentPoint.getY();
         List<Coordinate> list = new ArrayList<>();
-        if (currentDirection == PointDirectionEnum.SOUTH.getDirection()
-                || currentDirection == PointDirectionEnum.NORTH.getDirection()) {
-            list.add(new Coordinate(currentX - 1, currentY));
-            list.add(new Coordinate(currentX, currentY));
-            list.add(new Coordinate(currentX + 1, currentY));
-        } else if (currentDirection == PointDirectionEnum.WEST.getDirection()
-                || currentDirection == PointDirectionEnum.EAST.getDirection()) {
-            list.add(new Coordinate(currentX, currentY - 1));
-            list.add(new Coordinate(currentX, currentY));
-            list.add(new Coordinate(currentX, currentY + 1));
+        if (currentDirection == PointDirectionEnum.SOUTH.getDirection() || currentDirection == PointDirectionEnum.NORTH.getDirection()) {
+            list.add(Coordinate.valueOf(currentX - 1, currentY));
+            list.add(Coordinate.valueOf(currentX, currentY));
+            list.add(Coordinate.valueOf(currentX + 1, currentY));
+        } else if (currentDirection == PointDirectionEnum.WEST.getDirection() || currentDirection == PointDirectionEnum.EAST.getDirection()) {
+            list.add(Coordinate.valueOf(currentX, currentY - 1));
+            list.add(Coordinate.valueOf(currentX, currentY));
+            list.add(Coordinate.valueOf(currentX, currentY + 1));
         }
         return list;
     }

@@ -61,7 +61,7 @@ public class AStarAlgoFibonacci {
                 return Lists.reverse(pathReverse);
             }
             // 如果没有找到目的点，则寻找周围四个点
-            for (int i = 0; i < 4; i++) {
+            for (int i = 3; i >= 0; i--) {
                 // 判断该方向是否可行
                 int newDir = 1 << i;
                 if (!PointHelper.canPass(mapInfoEntity.getDir(nodePoint), newDir)) {
@@ -87,7 +87,7 @@ public class AStarAlgoFibonacci {
                         continue;
                 }
                 // 方向可行后，获取新的点
-                Coordinate newPoint = new Coordinate(nodePoint.getX() + dx, nodePoint.getY() + dy);
+                Coordinate newPoint = Coordinate.valueOf(nodePoint.getX() + dx, nodePoint.getY() + dy);
                 // 障碍物不可行
                 if (mapInfoEntity.isObstacle(newPoint.getX(), newPoint.getY())) {
                     continue;
@@ -97,11 +97,12 @@ public class AStarAlgoFibonacci {
                 newNode.setDir(newDir);
 
                 int weight = mapInfoEntity.getWeight(newPoint.getX(), newPoint.getY());
-                int newT = newNode.getDir() == node.getDir() ? node.getT() : node.getT() + TURN_COST_VALUE;
+//                int newT = newNode.getDir() == node.getDir() ? node.getT() : node.getT() + TURN_COST_VALUE;
                 // 起点的第二个点不增加权重
-                if (nodePoint.equals(src)) {
-                    newT = 0;
-                }
+//                if (nodePoint.equals(src)) {
+//                    newT = 0;
+//                }
+                int newT = 0;
                 int newG = node.getG() + weight + newT * 3;
                 int newH = PointHelper.getManhattanDistance(newPoint, des);
 

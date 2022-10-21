@@ -27,7 +27,7 @@ public class AlgorithmMapInfo {
     /**
      * 初始点
      */
-    public static final Coordinate INIT_POINT = new Coordinate(141,71);
+    public static final Coordinate INIT_POINT = Coordinate.valueOf(141,71);
 
     /**
      * 点数据，前8位点权重值，后4位是方向
@@ -159,6 +159,22 @@ public class AlgorithmMapInfo {
             return;
         }
         int newDir = oldDir - dir;
+        setDir(x, y, newDir);
+    }
+
+    /**
+     * 增加指定点指定方向
+     */
+    public void incrDir(int x, int y, int dir) {
+        if (validateCoordinate(x, y)) {
+            return;
+        }
+        int oldDir = getDir(x, y);
+        // 如果之前支持这个方向，则取消修改
+        if ((oldDir & dir) != 0) {
+            return;
+        }
+        int newDir = oldDir + dir;
         setDir(x, y, newDir);
     }
 
