@@ -13,16 +13,16 @@ public class TestCase {
     String x = "141";
     String y = "72";
 
-    String xMax = "200";
-    String yMax = "500";
+    String xMax = "199";
+    String yMax = "499";
 
     final static int xMaxIndex = 199;
     final static int yMaxIndex = 499;
 
     /**
-     * 140 70 140 71 140 72
-     * 141 70 141 71 141 72
-     * 142 70 142 71 142 72
+     * 140 70(0,0) 140 71(0,1) 140 72(0,2)
+     * 141 70(1,0) 141 71(1,1) 141 72(1,2)
+     * 142 70(2,1) 142 71(2,1) 142 72(2,2)
      */
     public static void func() {
         String[][] init = {
@@ -38,6 +38,11 @@ public class TestCase {
         blockSet.add("151,71");
         blockSet.add("199,499");
         blockSet.add("99,299");
+
+        for (int i = 0; i < 199 ; i++) {
+            blockSet.add((i + 1) +"," + 100);
+        }
+
         int loop = 20000;
         boolean flag = true;
         while (flag) {
@@ -57,34 +62,68 @@ public class TestCase {
                     newPoint = move(init,3);
                     if(!checkPoint(newPoint,3,blockSet)){
                         //change direct
-
                         newPoint = move(init,2);
                         if(!checkPoint(newPoint,2,blockSet)){
                             newPoint = move(init,1);
                             if(!checkPoint(newPoint,1,blockSet)){
                                 break;
+                            }else{
+                                String[][] oldPoint = init;
+                                init = newPoint;
+                                logFile(1 + ":" + init[1][1] + ":" + init[1][0]+ ";" + init[1][1] + ";"+init[1][2]);
+                                //log 坐标
+                                hasClean.add(newPoint[1][0]);
+                                hasClean.add(newPoint[1][1]);
+                                hasClean.add(newPoint[1][2]);
+                                //坐标放入stack
+                                String[][] finalNewPoint = newPoint;
+                                goBack.push(new HashMap<String,String>(){{
+                                    put("dir","1");
+                                    put("back", finalNewPoint[1][2]);
+                                }});
                             }
+                        }else{
+                            String[][] oldPoint = init;
+                            init = newPoint;
+                            logFile(2 + ":" + init[1][1] +":" + init[1][0] + ";" + init[1][1]+";"+init[1][2]);
+                            //log 坐标
+                            hasClean.add(newPoint[1][0]);
+                            hasClean.add(newPoint[1][1]);
+                            hasClean.add(newPoint[1][2]);
+                            //坐标放入stack
+                            String[][] finalNewPoint = newPoint;
+                            goBack.push(new HashMap<String,String>(){{
+                                put("dir","2");
+                                put("back", finalNewPoint[1][2]);
+                            }});
                         }
+                    }else{
+                        String[][] oldPoint = init;
+                        init = newPoint;
+                        //log 坐标
+                        logFile(3 + ":" + init[1][1] + ":" + init[0][1]+";"+init[1][1]+";"+init[2][1]);
+                        hasClean.add(newPoint[0][1]);
+                        hasClean.add(newPoint[1][1]);
+                        hasClean.add(newPoint[2][1]);
+                        //坐标放入stack
+                        String[][] finalNewPoint = newPoint;
+                        goBack.push(new HashMap<String,String>(){{
+                            put("dir","3");
+                            put("back", finalNewPoint[1][2]);
+                        }});
                     }
-
-
-
-
-
-
-
-
-
                 }else{
                     String[][] oldPoint = init;
                     init = newPoint;
-
+                    logFile(4 + ":" + init[1][1] + ":" +init[0][1]+";"+init[1][1]+";"+init[2][1]);
                     //log 坐标
-                    hasClean.add(newPoint[1][2]);
+                    hasClean.add(newPoint[0][1]);
+                    hasClean.add(newPoint[1][1]);
+                    hasClean.add(newPoint[2][1]);
                     //坐标放入stack
                     String[][] finalNewPoint = newPoint;
                     goBack.push(new HashMap<String,String>(){{
-                        put("dir","3");
+                        put("dir","4");
                         put("back", finalNewPoint[1][2]);
                     }});
                 }
@@ -105,18 +144,50 @@ public class TestCase {
                         ||
                         blockSet.contains(newPoint[2][2])
                         ||
-                        newPoint[0][2].split(",")[1].equals("500")
+                        newPoint[0][2].split(",")[1].equals("499")
                 ){
                     return false;
                 }
-
+            case 3:
+                if(blockSet.contains(newPoint[0][0])
+                        ||
+                        blockSet.contains(newPoint[1][0])
+                        ||
+                        blockSet.contains(newPoint[2][0])
+                        ||
+                        newPoint[0][0].split(",")[1].equals("0")
+                ){
+                    return false;
+                }
+            case 2:
+                if(blockSet.contains(newPoint[2][0])
+                        ||
+                        blockSet.contains(newPoint[2][1])
+                        ||
+                        blockSet.contains(newPoint[2][2])
+                        ||
+                        newPoint[2][0].split(",")[1].equals("199")
+                ){
+                    return false;
+                }
+            case 1:
+                if(blockSet.contains(newPoint[0][0])
+                        ||
+                        blockSet.contains(newPoint[0][1])
+                        ||
+                        blockSet.contains(newPoint[0][2])
+                        ||
+                        newPoint[0][0].split(",")[1].equals("0")
+                ){
+                    return false;
+                }
         }
         return true;
     }
 
 
-    private void logFile(String file){
-
+    private static void  logFile(String file){
+        System.out.println(file);
     }
 
 
@@ -191,7 +262,10 @@ public class TestCase {
 
 
     public static void main(String[] args) {
-        func();
+        //func();
+        for (int i = 0; i < 199 ; i++) {
+            System.out.println((i + 1) +"," + 100);
+        }
     }
 
 
