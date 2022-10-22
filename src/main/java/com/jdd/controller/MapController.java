@@ -109,7 +109,7 @@ public class MapController {
             // 重新计算障碍物
             calcObstacle(algorithmMap);
             // 重新输出地图结构
-//            printMap(algorithmMap);
+            printMap(algorithmMap);
             // 清除边界方向
             cleanBorderDirection(algorithmMap);
 

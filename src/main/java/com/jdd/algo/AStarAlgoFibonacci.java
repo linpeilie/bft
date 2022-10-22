@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.jdd.domain.*;
 import com.jdd.enums.PointDirectionEnum;
 import com.jdd.helper.PointHelper;
+import org.ietf.jgss.Oid;
 
 import java.util.*;
 
@@ -19,6 +20,10 @@ public class AStarAlgoFibonacci {
      * @param mapInfoEntity 地图信息
      */
     public static List<Coordinate> getShortestPath(Coordinate src, Coordinate des, AlgorithmMapInfo mapInfoEntity) {
+        // 原来的方向
+        int originalDir = mapInfoEntity.getDir(src.getX(), src.getY());
+        // 设置为全方向
+        mapInfoEntity.setDir(src.getX(), src.getY(), 15);
         FibonacciHeap<AlgorithmNode> openList = new FibonacciHeap<>();
         Set<Coordinate> closeList = new HashSet<>();
         // 路径
@@ -51,6 +56,7 @@ public class AStarAlgoFibonacci {
             Coordinate nodePoint = node.getPoint();
             // 找到目的点
             if (nodePoint.equals(des)) {
+                mapInfoEntity.setDir(src.getX(), src.getY(), originalDir);
                 List<Coordinate> pathReverse = new ArrayList<>();
                 AlgorithmNode n = path.get(path.size() - 1);
                 while (n != null && n.getParentNode() != null && n.getParentNode().getPoint() != null) {
@@ -149,6 +155,7 @@ public class AStarAlgoFibonacci {
             closeList.add(node.getPoint());
         }
 
+        mapInfoEntity.setDir(src.getX(), src.getY(), originalDir);
         return Collections.emptyList();
     }
 
