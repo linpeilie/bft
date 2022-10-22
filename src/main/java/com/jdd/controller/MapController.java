@@ -36,7 +36,9 @@ public class MapController {
 
     private static final Set<Coordinate> CLEAN_POINTS = new HashSet<>();
 
-    private static final Set<Coordinate> CAN_RECEIVED_POINTS = new HashSet<>();
+    private static final Set<Coordinate> CAN_ARRIVE_POINTS = new HashSet<>();
+
+    private static final Set<Coordinate> ORIGINAL_BARRIER = new HashSet<>();
 
     @PostMapping(value = "downloadResult")
     public void downloadResult() {
@@ -51,18 +53,18 @@ public class MapController {
             InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             br = new BufferedReader(reader);
             // 解析单元格
-            List<Coordinate> barriers = new ArrayList<>();
+            ORIGINAL_BARRIER.clear();
             while (br.ready()) {
                 int[] arr = StrUtil.splitToInt(br.readLine(), ",");
                 if (ArrayUtil.isNotEmpty(arr) && arr.length == 2) {
-                    barriers.add(Coordinate.valueOf(arr[0], arr[1]));
+                    ORIGINAL_BARRIER.add(Coordinate.valueOf(arr[0], arr[1]));
                 }
             }
             // 重置地图
             AlgorithmMapInfo algorithmMap = AlgorithmMapInfo.getInstance();
             algorithmMap.reset();
             CLEAN_POINTS.clear();
-            CAN_RECEIVED_POINTS.clear();
+            CAN_ARRIVE_POINTS.clear();
             PASSED.set(0);
             // 删除之前的文件
             String bashPath = getResourceBasePath();
@@ -71,7 +73,7 @@ public class MapController {
                 FileUtil.del(resultFile);
             }
             // 设置障碍物单元格周围点方向
-            for (Coordinate barrier : barriers) {
+            for (Coordinate barrier : ORIGINAL_BARRIER) {
                 // 周围十二个点
                 List<Coordinate> surrounding = new ArrayList<>();
                 surrounding.add(Coordinate.valueOf(barrier.getX(), barrier.getY() - 1));
@@ -98,7 +100,7 @@ public class MapController {
                 surrounding.clear();
             }
             // 设置障碍物
-            barriers.forEach(barrier -> {
+            ORIGINAL_BARRIER.forEach(barrier -> {
                 algorithmMap.setObstacle(barrier.getX(), barrier.getY());
             });
             // 设置初始点的方向
@@ -109,11 +111,13 @@ public class MapController {
             // 重新计算障碍物
             calcObstacle(algorithmMap);
             // 重新输出地图结构
-            printMap(algorithmMap);
+//            printMap(algorithmMap);
             // 清除边界方向
             cleanBorderDirection(algorithmMap);
 
             matchTask(algorithmMap);
+            // 检测扫描点和障碍物是否碰撞
+            checkResult();
 
         } catch (Exception e) {
             log.error("解析文件异常", e);
@@ -128,6 +132,14 @@ public class MapController {
             }
         }
         return "解析文件成功";
+    }
+
+    private void checkResult() {
+        for (Coordinate cleanPoint : CLEAN_POINTS) {
+            if (ORIGINAL_BARRIER.contains(cleanPoint)) {
+                System.err.println("点 [" + cleanPoint.getX() + "," + cleanPoint.getY() + "] 碰撞到障碍点");
+            }
+        }
     }
 
     private void cleanBorderDirection(AlgorithmMapInfo algorithmMap) {
@@ -189,7 +201,7 @@ public class MapController {
     private void calcObstacle(AlgorithmMapInfo mapInfo) throws InterruptedException {
 
         Set<Coordinate> noObstaclePoints = getCanArchivePoints(mapInfo);
-        CAN_RECEIVED_POINTS.addAll(noObstaclePoints);
+        CAN_ARRIVE_POINTS.addAll(noObstaclePoints);
         System.out.println("所有可以到达的点的 " + noObstaclePoints.size());
         for (int y = 0; y < AlgorithmMapInfo.LINE_NUM; y++) {
             for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
@@ -306,36 +318,9 @@ public class MapController {
         }
         // 当前点
         RoutePoint currentPoint = routePoints.get(routePoints.size() - 1);
-        // 追加补偿
-        Set<Coordinate> nonCleanPoints = new HashSet<>();
-        for (Coordinate canReceivedPoint : CAN_RECEIVED_POINTS) {
-            if (CLEAN_POINTS.contains(canReceivedPoint)) {
-                continue;
-            }
-            nonCleanPoints.add(canReceivedPoint);
-        }
-        // 补偿点
-        Set<Coordinate> compensationPoints = new HashSet<>();
-        for (Coordinate nonCleanPoint : nonCleanPoints) {
-            int x = nonCleanPoint.getX();
-            int y = nonCleanPoint.getY();
-            if (!nonCleanPoints.contains(Coordinate.valueOf(x - 1, y))) {
-                continue;
-            }
-            if (!nonCleanPoints.contains(Coordinate.valueOf(x + 1, y))) {
-                continue;
-            }
-            if (!nonCleanPoints.contains(Coordinate.valueOf(x, y - 1))) {
-                continue;
-            }
-            if (!nonCleanPoints.contains(Coordinate.valueOf(x, y + 1))) {
-                continue;
-            }
-            compensationPoints.add(nonCleanPoint);
-        }
-        System.out.println("需要补偿的点数量 : " + compensationPoints.size());
+        // TODO:追加补偿，针对没有扫到的大片区域，再清扫一遍，现在已经基本稳定，所以先不加了
 
-        System.out.println("可清理数量");
+        System.out.println("可清理数量 " + CAN_ARRIVE_POINTS.size());
         System.out.println("扫过点数量 " + CLEAN_POINTS.size());
         appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
         routePoints.clear();
