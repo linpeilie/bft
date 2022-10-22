@@ -25,11 +25,18 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(value = "/map")
 @Slf4j
 public class MapController {
+
+    private static final AtomicInteger PASSED = new AtomicInteger();
+
+    private static final Set<Coordinate> CLEAN_POINTS = new HashSet<>();
+
+    private static final Set<Coordinate> CAN_RECEIVED_POINTS = new HashSet<>();
 
     @PostMapping(value = "downloadResult")
     public void downloadResult() {
@@ -54,6 +61,15 @@ public class MapController {
             // 重置地图
             AlgorithmMapInfo algorithmMap = AlgorithmMapInfo.getInstance();
             algorithmMap.reset();
+            CLEAN_POINTS.clear();
+            CAN_RECEIVED_POINTS.clear();
+            PASSED.set(0);
+            // 删除之前的文件
+            String bashPath = getResourceBasePath();
+            File resultFile = new File(bashPath, "result.txt");
+            if (FileUtil.exist(resultFile)) {
+                FileUtil.del(resultFile);
+            }
             // 设置障碍物单元格周围点方向
             for (Coordinate barrier : barriers) {
                 // 周围十二个点
@@ -88,12 +104,12 @@ public class MapController {
             // 设置初始点的方向
             algorithmMap.setDir(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY(), PointDirectionEnum.NORTH.getDirection());
             // 输出地图结构
-            printMap(algorithmMap);
+//            printMap(algorithmMap);
             System.out.println("====================================================================================================================");
             // 重新计算障碍物
             calcObstacle(algorithmMap);
             // 重新输出地图结构
-            printMap(algorithmMap);
+//            printMap(algorithmMap);
             // 清除边界方向
             cleanBorderDirection(algorithmMap);
 
@@ -130,9 +146,14 @@ public class MapController {
     }
 
     private String transLine(RoutePoint routePoint) {
-        StringBuilder result = new StringBuilder().append(PointDirectionEnum.getEnumByDirection(routePoint.getDirection()).getOutputDirection()).append(":").append(routePoint.getX()).append(",").append(routePoint.getY()).append(":");
+        StringBuilder result = new StringBuilder()
+                .append(PointDirectionEnum.getEnumByDirection(routePoint.getDirection()).getOutputDirection())
+                .append(":")
+                .append(routePoint.getX()).append(",")
+                .append(routePoint.getY());
         if (CollectionUtil.isNotEmpty(routePoint.getCleanPoints())) {
             int size = routePoint.getCleanPoints().size();
+            result.append(":");
             for (int i = 0; i < size; i++) {
                 result.append(routePoint.getCleanPoints().get(i).getX())
                         .append(",")
@@ -146,7 +167,11 @@ public class MapController {
     }
 
     private void printMap(AlgorithmMapInfo algorithmMap) {
+        for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
+            System.out.print((x + 1)  + " ");
+        }
         for (int y = AlgorithmMapInfo.LINE_NUM - 1; y >= 0; y--) {
+            System.out.print((y + 1) + " ");
             for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
                 if (algorithmMap.isObstacle(x, y)) {
                     System.out.print("●");
@@ -164,6 +189,7 @@ public class MapController {
     private void calcObstacle(AlgorithmMapInfo mapInfo) throws InterruptedException {
 
         Set<Coordinate> noObstaclePoints = getCanArchivePoints(mapInfo);
+        CAN_RECEIVED_POINTS.addAll(noObstaclePoints);
         System.out.println("所有可以到达的点的 " + noObstaclePoints.size());
         for (int y = 0; y < AlgorithmMapInfo.LINE_NUM; y++) {
             for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
@@ -225,13 +251,12 @@ public class MapController {
     }
 
     private List<RoutePoint> matchTask(AlgorithmMapInfo mapInfo) {
-        int passed = 0;
         int currentDirection = PointDirectionEnum.NORTH.getDirection();
         // 当前点
         Coordinate currentCoordinate = Coordinate.valueOf(AlgorithmMapInfo.INIT_POINT.getX(), AlgorithmMapInfo.INIT_POINT.getY());
         List<RoutePoint> routePoints = new ArrayList<>();
         // 先让车辆前往最右边的点
-        for (int x = AlgorithmMapInfo.COL_NUM - 1; x > currentCoordinate.getX(); x--) {
+        for (int x = AlgorithmMapInfo.COL_NUM; x > currentCoordinate.getX(); x--) {
             boolean obstacle = mapInfo.isObstacle(x, currentCoordinate.getY() + 1);
             if (obstacle) {
                 continue;
@@ -243,7 +268,7 @@ public class MapController {
             }
             // 找到之后
             Task task = initTask(path, currentDirection, TaskTypeEnum.CLEANING);
-            passed = addRoute(routePoints, passed, task, mapInfo);
+            addRoute(routePoints, task, mapInfo);
             // 当前方向
             currentDirection = task.getRoutePoints().get(task.getRoutePoints().size() - 1).getDirection();
             // 当前点
@@ -252,7 +277,7 @@ public class MapController {
         }
         boolean isRight = true;
         // 初始化y轴上部分任务
-        for (int y = AlgorithmMapInfo.INIT_POINT.getY() + 4; y <= AlgorithmMapInfo.LINE_NUM; y += 3) {
+        for (int y = AlgorithmMapInfo.INIT_POINT.getY(); y <= AlgorithmMapInfo.LINE_NUM; y += 2) {
             System.out.println("当前y" + y);
             List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate, isRight);
             if (CollectionUtil.isEmpty(nextTasks)) {
@@ -260,13 +285,13 @@ public class MapController {
             }
             isRight = !isRight;
             for (Task nextTask : nextTasks) {
-                passed = addRoute(routePoints, passed, nextTask, mapInfo);
+                addRoute(routePoints, nextTask, mapInfo);
             }
             Task lastTask = nextTasks.get(nextTasks.size() - 1);
             currentCoordinate = lastTask.getDes();
         }
         // 初始化y轴下部分任务
-        for (int y = AlgorithmMapInfo.INIT_POINT.getY(); y >= 0; y -= 3) {
+        for (int y = AlgorithmMapInfo.INIT_POINT.getY(); y >= 0; y -= 2) {
             System.out.println("当前y" + y);
             List<Task> nextTasks = getNextTask(mapInfo, y, currentDirection, currentCoordinate, isRight);
             if (CollectionUtil.isEmpty(nextTasks)) {
@@ -274,14 +299,45 @@ public class MapController {
             }
             isRight = !isRight;
             for (Task nextTask : nextTasks) {
-                passed = addRoute(routePoints, passed, nextTask, mapInfo);
+                addRoute(routePoints, nextTask, mapInfo);
             }
             Task lastTask = nextTasks.get(nextTasks.size() - 1);
             currentCoordinate = lastTask.getDes();
         }
-        appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
-        // 添加回程任务
+        // 当前点
         RoutePoint currentPoint = routePoints.get(routePoints.size() - 1);
+        // 追加补偿
+        Set<Coordinate> nonCleanPoints = new HashSet<>();
+        for (Coordinate canReceivedPoint : CAN_RECEIVED_POINTS) {
+            if (CLEAN_POINTS.contains(canReceivedPoint)) {
+                continue;
+            }
+            nonCleanPoints.add(canReceivedPoint);
+        }
+        // 补偿点
+        Set<Coordinate> compensationPoints = new HashSet<>();
+        for (Coordinate nonCleanPoint : nonCleanPoints) {
+            int x = nonCleanPoint.getX();
+            int y = nonCleanPoint.getY();
+            if (!nonCleanPoints.contains(Coordinate.valueOf(x - 1, y))) {
+                continue;
+            }
+            if (!nonCleanPoints.contains(Coordinate.valueOf(x + 1, y))) {
+                continue;
+            }
+            if (!nonCleanPoints.contains(Coordinate.valueOf(x, y - 1))) {
+                continue;
+            }
+            if (!nonCleanPoints.contains(Coordinate.valueOf(x, y + 1))) {
+                continue;
+            }
+            compensationPoints.add(nonCleanPoint);
+        }
+        System.out.println("需要补偿的点数量 : " + compensationPoints.size());
+
+        System.out.println("可清理数量");
+        System.out.println("扫过点数量 " + CLEAN_POINTS.size());
+        appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
         routePoints.clear();
         appendResult(routePoints, TaskTypeEnum.CHARGE.getType());
         List<Coordinate> backPath = AStarAlgoFibonacci.getShortestPath(Coordinate.valueOf(currentPoint.getX(), currentPoint.getY()), AlgorithmMapInfo.INIT_POINT, mapInfo);
@@ -333,50 +389,60 @@ public class MapController {
     }
 
 
-    private int addRoute(List<RoutePoint> routePoints, int passedPoints, Task task, AlgorithmMapInfo mapInfo) {
-        int passed = passedPoints;
+    private void addRoute(List<RoutePoint> routePoints, Task task, AlgorithmMapInfo mapInfo) {
         for (RoutePoint routePoint : task.getRoutePoints()) {
-            routePoints.add(routePoint);
-            passed++;
-            // 两万
-            if (routePoints.size() % 20000 == 0) {
-                // 写入文件
-                appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
-                routePoints.clear();
-                // 添加回去的任务
-                Coordinate tempPoint = Coordinate.valueOf(routePoint.getX(), routePoint.getY());
-                Coordinate initPoint = AlgorithmMapInfo.INIT_POINT;
-                List<Coordinate> chargePath = AStarAlgoFibonacci.getShortestPath(tempPoint, initPoint, mapInfo);
-                Task chargeTask = initTask(chargePath, routePoint.getDirection(), TaskTypeEnum.CHARGE);
-                List<RoutePoint> chargeTaskRoutePoints = chargeTask.getRoutePoints();
-                routePoints.addAll(chargeTaskRoutePoints);
-                appendResult(routePoints, TaskTypeEnum.CHARGE.getType());
-                routePoints.clear();
-                passed = 0;
-                // 获取回去后最后一个点的方向
-                int initPointDirection = chargeTaskRoutePoints.get(chargeTaskRoutePoints.size() - 1).getDirection();
-                // 如果不是西的话，则，添加一个向东的指令
-                if (initPointDirection != PointDirectionEnum.NORTH.getDirection()) {
-                    RoutePoint initPointTurn = initRoutePoint(initPoint.getX(), initPoint.getY(), TaskTypeEnum.CLEANING, PointDirectionEnum.NORTH.getDirection());
-                    routePoints.add(initPointTurn);
-                    passed++;
-                }
-                // 再获取回来的路径
-                List<Coordinate> backTaskPath = AStarAlgoFibonacci.getShortestPath(initPoint, tempPoint, mapInfo);
-                Task backCleanTask = initTask(backTaskPath, PointDirectionEnum.NORTH.getDirection(), TaskTypeEnum.CLEANING);
-                passed = addRoute(routePoints, passed, backCleanTask, mapInfo);
-                // 获取最后到达的方向
-                List<RoutePoint> backCleanPath = backCleanTask.getRoutePoints();
-                // 获取当前点
-                RoutePoint currentPoint = backCleanPath.get(backCleanPath.size() - 1);
-                if (currentPoint.getDirection() != routePoint.getDirection()) {
-                    // 再添加一个
-                    routePoints.add(routePoint);
-                    passed++;
+            addRoute(routePoints, routePoint, mapInfo);
+        }
+    }
+
+    private void addRoute(List<RoutePoint> routePoints, RoutePoint routePoint, AlgorithmMapInfo mapInfo) {
+        routePoints.add(routePoint);
+        List<Coordinate> cleanPoints = routePoint.getCleanPoints();
+        if (CollectionUtil.isNotEmpty(cleanPoints)) {
+            for (Coordinate cleanPoint : cleanPoints) {
+                boolean add = CLEAN_POINTS.add(cleanPoint);
+                if (add) {
+                    // 设置扫过的点权重
+                    mapInfo.setWeight(cleanPoint.getX(), cleanPoint.getY(), 200);
                 }
             }
         }
-        return passed;
+        PASSED.incrementAndGet();
+        // 两万
+        if (PASSED.get() % 20000 == 0) {
+            // 写入文件
+            appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
+            routePoints.clear();
+            // 添加回去的任务
+            Coordinate tempPoint = Coordinate.valueOf(routePoint.getX(), routePoint.getY());
+            Coordinate initPoint = AlgorithmMapInfo.INIT_POINT;
+            List<Coordinate> chargePath = AStarAlgoFibonacci.getShortestPath(tempPoint, initPoint, mapInfo);
+            Task chargeTask = initTask(chargePath, routePoint.getDirection(), TaskTypeEnum.CHARGE);
+            List<RoutePoint> chargeTaskRoutePoints = chargeTask.getRoutePoints();
+            routePoints.addAll(chargeTaskRoutePoints);
+            // 获取回去后最后一个点的方向
+            int initPointDirection = chargeTaskRoutePoints.get(chargeTaskRoutePoints.size() - 1).getDirection();
+            // 如果不是西的话，则，添加一个向东的指令
+            if (initPointDirection != PointDirectionEnum.NORTH.getDirection()) {
+                RoutePoint initPointTurn = initRoutePoint(initPoint.getX(), initPoint.getY(), TaskTypeEnum.CLEANING, PointDirectionEnum.NORTH.getDirection());
+                routePoints.add(initPointTurn);
+            }
+            appendResult(routePoints, TaskTypeEnum.CHARGE.getType());
+            routePoints.clear();
+            PASSED.set(0);
+            // 再获取回来的路径
+            List<Coordinate> backTaskPath = AStarAlgoFibonacci.getShortestPath(initPoint, tempPoint, mapInfo);
+            Task backCleanTask = initTask(backTaskPath, PointDirectionEnum.NORTH.getDirection(), TaskTypeEnum.CLEANING);
+            addRoute(routePoints, backCleanTask, mapInfo);
+            // 获取最后到达的方向
+            List<RoutePoint> backCleanPath = backCleanTask.getRoutePoints();
+            // 获取当前点
+            RoutePoint currentPoint = backCleanPath.get(backCleanPath.size() - 1);
+            if (currentPoint.getDirection() != routePoint.getDirection()) {
+                // 再添加一个
+                addRoute(routePoints, routePoint, mapInfo);
+            }
+        }
     }
 
     private List<Task> getNextTask(AlgorithmMapInfo mapInfo, int currentY, int currentDirection, Coordinate currentCoordinate, boolean isRight) {
@@ -386,6 +452,9 @@ public class MapController {
             // 右边的，从右往左循环
             for (int x = AlgorithmMapInfo.COL_NUM - 1; x >= 0; x--) {
                 if (mapInfo.isObstacle(x, currentY)) {
+                    continue;
+                }
+                if (mapInfo.getDir(x, currentY) == 0) {
                     continue;
                 }
                 Coordinate dest = Coordinate.valueOf(x, currentY);
@@ -402,6 +471,9 @@ public class MapController {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
+                if (mapInfo.getDir(x, currentY) == 0) {
+                    continue;
+                }
                 Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
@@ -415,6 +487,9 @@ public class MapController {
                 if (mapInfo.isObstacle(x, currentY)) {
                     continue;
                 }
+                if (mapInfo.getDir(x, currentY) == 0) {
+                    continue;
+                }
                 Coordinate dest = Coordinate.valueOf(x, currentY);
                 List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(currentCoordinate, dest, mapInfo);
                 if (CollectionUtil.isEmpty(path) || path.size() == 1) {
@@ -426,6 +501,9 @@ public class MapController {
             }
             for (int x = AlgorithmMapInfo.COL_NUM - 1; x >= 0; x--) {
                 if (mapInfo.isObstacle(x, currentY)) {
+                    continue;
+                }
+                if (mapInfo.getDir(x, currentY) == 0) {
                     continue;
                 }
                 Coordinate dest = Coordinate.valueOf(x, currentY);
