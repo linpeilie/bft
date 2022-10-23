@@ -1,10 +1,9 @@
 package com.jdd.algo;
 
-import com.google.common.collect.Lists;
+import cn.hutool.core.collection.CollectionUtil;
 import com.jdd.domain.*;
 import com.jdd.enums.PointDirectionEnum;
 import com.jdd.helper.PointHelper;
-import org.ietf.jgss.Oid;
 
 import java.util.*;
 
@@ -17,13 +16,12 @@ public class AStarAlgoFibonacci {
      *
      * @param src           起点
      * @param des           终点
-     * @param mapInfoEntity 地图信息
      */
-    public static List<Coordinate> getShortestPath(Coordinate src, Coordinate des, AlgorithmMapInfo mapInfoEntity) {
+    public static List<Coordinate> getShortestPath(Coordinate src, Coordinate des) {
         // 原来的方向
-        int originalDir = mapInfoEntity.getDir(src.getX(), src.getY());
+        int originalDir = AlgorithmMapInfo.getDir(src.getX(), src.getY());
         // 设置为全方向
-        mapInfoEntity.setDir(src.getX(), src.getY(), 15);
+        AlgorithmMapInfo.setDir(src.getX(), src.getY(), 15);
         FibonacciHeap<AlgorithmNode> openList = new FibonacciHeap<>();
         Set<Coordinate> closeList = new HashSet<>();
         // 路径
@@ -56,7 +54,7 @@ public class AStarAlgoFibonacci {
             Coordinate nodePoint = node.getPoint();
             // 找到目的点
             if (nodePoint.equals(des)) {
-                mapInfoEntity.setDir(src.getX(), src.getY(), originalDir);
+                AlgorithmMapInfo.setDir(src.getX(), src.getY(), originalDir);
                 List<Coordinate> pathReverse = new ArrayList<>();
                 AlgorithmNode n = path.get(path.size() - 1);
                 while (n != null && n.getParentNode() != null && n.getParentNode().getPoint() != null) {
@@ -64,13 +62,13 @@ public class AStarAlgoFibonacci {
                     n = vertexToNodeMap.get(n.getParentNode().getPoint());
                 }
                 pathReverse.add(src);
-                return Lists.reverse(pathReverse);
+                return CollectionUtil.reverse(pathReverse);
             }
             // 如果没有找到目的点，则寻找周围四个点
             for (int i = 3; i >= 0; i--) {
                 // 判断该方向是否可行
                 int newDir = 1 << i;
-                if (!PointHelper.canPass(mapInfoEntity.getDir(nodePoint), newDir)) {
+                if (!PointHelper.canPass(AlgorithmMapInfo.getDir(nodePoint), newDir)) {
                     continue;
                 }
                 PointDirectionEnum pointDirection = PointDirectionEnum.getEnumByDirection(newDir);
@@ -95,14 +93,14 @@ public class AStarAlgoFibonacci {
                 // 方向可行后，获取新的点
                 Coordinate newPoint = Coordinate.valueOf(nodePoint.getX() + dx, nodePoint.getY() + dy);
                 // 障碍物不可行
-                if (mapInfoEntity.isObstacle(newPoint.getX(), newPoint.getY())) {
+                if (AlgorithmMapInfo.isObstacle(newPoint.getX(), newPoint.getY())) {
                     continue;
                 }
                 // 计算该点的代价值
                 AlgorithmNode newNode = new AlgorithmNode(newPoint);
                 newNode.setDir(newDir);
 
-                int weight = mapInfoEntity.getWeight(newPoint.getX(), newPoint.getY());
+                int weight = AlgorithmMapInfo.getWeight(newPoint.getX(), newPoint.getY());
 //                int newT = newNode.getDir() == node.getDir() ? node.getT() : node.getT() + TURN_COST_VALUE;
                 // 起点的第二个点不增加权重
 //                if (nodePoint.equals(src)) {
@@ -155,7 +153,7 @@ public class AStarAlgoFibonacci {
             closeList.add(node.getPoint());
         }
 
-        mapInfoEntity.setDir(src.getX(), src.getY(), originalDir);
+        AlgorithmMapInfo.setDir(src.getX(), src.getY(), originalDir);
         return Collections.emptyList();
     }
 

@@ -14,9 +14,7 @@ public class CoordinateCache {
         if (CACHE_MAP.containsKey(key)) {
             return CACHE_MAP.get(key);
         } else {
-            Coordinate coordinate = new Coordinate();
-            coordinate.setX(x);
-            coordinate.setY(y);
+            Coordinate coordinate = new Coordinate(x, y);
             CACHE_MAP.put(key, coordinate);
             return coordinate;
         }

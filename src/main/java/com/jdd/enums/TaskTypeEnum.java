@@ -1,10 +1,5 @@
 package com.jdd.enums;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public enum TaskTypeEnum {
 
     CLEANING(1),
@@ -13,5 +8,11 @@ public enum TaskTypeEnum {
 
     private final int type;
 
+    TaskTypeEnum(int type) {
+        this.type = type;
+    }
 
+    public int getType() {
+        return type;
+    }
 }

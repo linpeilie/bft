@@ -8,10 +8,6 @@ public final class PointHelper {
     private PointHelper() {
     }
 
-    public static final Integer HouseOriginX = 10000;  //地图的真实原点坐标x(mm)
-
-    public static final Integer HouseOriginY = 10000;  //地图的真实原点坐标Y(mm)
-
     /**
      * 获取北方向值
      */

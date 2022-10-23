@@ -1,10 +1,5 @@
 package com.jdd.enums;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public enum PointDirectionEnum {
 
     NONE(0, 0),
@@ -15,6 +10,19 @@ public enum PointDirectionEnum {
 
     private final int direction;
     private final int outputDirection;
+
+    PointDirectionEnum(int direction, int outputDirection) {
+        this.direction = direction;
+        this.outputDirection = outputDirection;
+    }
+
+    public int getDirection() {
+        return direction;
+    }
+
+    public int getOutputDirection() {
+        return outputDirection;
+    }
 
     public static PointDirectionEnum getEnumByDirection(int direction) {
         for (PointDirectionEnum pointDirectionEnum : PointDirectionEnum.values()) {

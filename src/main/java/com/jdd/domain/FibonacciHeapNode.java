@@ -1,12 +1,9 @@
 package com.jdd.domain;
 
-import lombok.Getter;
-
 public class FibonacciHeapNode<T> {
     /**
      * Node data.
      */
-    @Getter
     public T data;
 
     /**
@@ -37,7 +34,6 @@ public class FibonacciHeapNode<T> {
     /**
      * key value for this node
      */
-    @Getter
     public int key;
 
     /**
@@ -65,4 +61,12 @@ public class FibonacciHeapNode<T> {
     }
 
     // toString
+
+    public T getData() {
+        return data;
+    }
+
+    public int getKey() {
+        return key;
+    }
 }
