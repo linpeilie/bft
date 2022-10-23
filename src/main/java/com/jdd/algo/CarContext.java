@@ -69,7 +69,7 @@ public class CarContext {
         if (ArrayUtil.isNotEmpty(routePoint.getCleanPoints())) {
             for (Coordinate cleanPoint : routePoint.getCleanPoints()) {
                 if (AlgorithmMapInfo.addCleanPoint(cleanPoint)) {
-                    AlgorithmMapInfo.setWeight(routePoint.getX(), routePoint.getY(), 50);
+                    AlgorithmMapInfo.setWeight(routePoint.getX(), routePoint.getY(), 200);
                 }
             }
         }

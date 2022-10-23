@@ -30,7 +30,7 @@ public class CalcRouteApplication {
 
     public static void execute() {
         // 加载地图障碍点信息
-        List<Coordinate> barrierPoints = FileHelper.parseBarrier("block.txt");
+        List<Coordinate> barrierPoints = FileHelper.parseBarrier("block(3).txt");
         barrierPoints.forEach(AlgorithmMapInfo::setObstacle);
         // 删除之前的文件
         FileHelper.delOldResultFile();
@@ -57,17 +57,19 @@ public class CalcRouteApplication {
     private static void checkResult() {
         System.out.println("可清理数量 " + AlgorithmMapInfo.getCanArrived());
         System.out.println("扫过点数量 " + AlgorithmMapInfo.getCleanPointSize());
+        printCleanMap();
     }
 
     private static void matchTask() {
         // 先让车辆到达原点（最小可用点）
         Coordinate origin = getOrigin();
-//        System.out.println("原点[ " + origin.getX() + "," + origin.getY() + " ]");
+        System.out.println("原点[ " + origin.getX() + "," + origin.getY() + " ]");
         List<Coordinate> path = AStarAlgoFibonacci.getShortestPath(CarContext.getCurrentPoint(), origin);
         CarContext.addPath(path, TaskTypeEnum.CLEANING);
         for (int y = origin.getY(); y < AlgorithmMapInfo.LINE_NUM; y += 2) {
             cleanNextLine(y);
         }
+        // 返回
         List<RoutePoint> routePoints = CarContext.getRoutePoints();
         FileHelper.appendResult(routePoints, TaskTypeEnum.CLEANING.getType());
         routePoints.clear();
@@ -95,7 +97,7 @@ public class CalcRouteApplication {
                 break;
             }
         }
-//        System.out.println("行数 [ " + y + " ], 最左侧到达[ " + minX + " ]，最右侧到达[ " + maxX + " ] ");
+        System.out.println("行数 [ " + y + " ], 最左侧到达[ " + minX + " ]，最右侧到达[ " + maxX + " ] ");
         if (minX == maxX) {
             return;
         }
@@ -124,7 +126,7 @@ public class CalcRouteApplication {
                 break;
             }
         }
-//        System.out.println("行数 [ " + (y+1) + " ]，最左侧可到达[ " + minX + " ]，最右侧可到达[ " + maxX + " ]");
+        System.out.println("行数 [ " + (y+1) + " ]，最左侧可到达[ " + minX + " ]，最右侧可到达[ " + maxX + " ]");
         if (minX == maxX) {
             return;
         }
@@ -150,6 +152,25 @@ public class CalcRouteApplication {
                     System.out.print("●");
                 } else if (x == AlgorithmMapInfo.INIT_POINT.getX() && y == AlgorithmMapInfo.INIT_POINT.getY()) {
                     System.out.print("★");
+                } else {
+                    System.out.print(" ");
+                }
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
+    }
+
+    private static void printCleanMap() {
+        for (int y = AlgorithmMapInfo.LINE_NUM - 1; y >= 0; y--) {
+            System.out.printf("%3d", y);
+            for (int x = 0; x < AlgorithmMapInfo.COL_NUM; x++) {
+                if (AlgorithmMapInfo.isObstacle(x, y)) {
+                    System.out.print("●");
+                } else if (x == AlgorithmMapInfo.INIT_POINT.getX() && y == AlgorithmMapInfo.INIT_POINT.getY()) {
+                    System.out.print("★");
+                } else if (AlgorithmMapInfo.getCleanPoints().contains(Coordinate.valueOf(x, y))) {
+                    System.out.print("*");
                 } else {
                     System.out.print(" ");
                 }

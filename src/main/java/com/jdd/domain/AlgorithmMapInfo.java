@@ -264,6 +264,9 @@ public class AlgorithmMapInfo {
         return CLEAN_POINTS.add(point);
     }
 
+    public static Set<Coordinate> getCleanPoints() {
+        return CLEAN_POINTS;
+    }
     public static int getCleanPointSize() {
         return CLEAN_POINTS.size();
     }

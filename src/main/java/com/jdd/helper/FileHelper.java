@@ -61,18 +61,18 @@ public class FileHelper {
                 .append(":")
                 .append(routePoint.getX()).append(",")
                 .append(routePoint.getY());
-//        if (ArrayUtil.isNotEmpty(routePoint.getCleanPoints())) {
-//            int size = routePoint.getCleanPoints().length;
-//            result.append(":");
-//            for (int i = 0; i < size; i++) {
-//                result.append(routePoint.getCleanPoints()[i].getX())
-//                        .append(",")
-//                        .append(routePoint.getCleanPoints()[i].getY());
-//                if (i != size - 1) {
-//                    result.append(";");
-//                }
-//            }
-//        }
+        if (ArrayUtil.isNotEmpty(routePoint.getCleanPoints())) {
+            int size = routePoint.getCleanPoints().length;
+            result.append(":");
+            for (int i = 0; i < size; i++) {
+                result.append(routePoint.getCleanPoints()[i].getX())
+                        .append(",")
+                        .append(routePoint.getCleanPoints()[i].getY());
+                if (i != size - 1) {
+                    result.append(";");
+                }
+            }
+        }
         return result.toString();
     }
 
