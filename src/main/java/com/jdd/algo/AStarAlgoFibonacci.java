@@ -107,8 +107,8 @@ public class AStarAlgoFibonacci {
 //                    newT = 0;
 //                }
                 int newT = 0;
-                int newG = node.getG() + weight + newT * 3;
-                int newH = PointHelper.getManhattanDistance(newPoint, des);
+                int newG = node.getG() / AlgoStrategy.g + weight + newT * 3;
+                int newH = PointHelper.getManhattanDistance(newPoint, des) / AlgoStrategy.h;
 
                 newNode.setT(newT);
                 newNode.setG(newG);

@@ -16,7 +16,7 @@ public class AlgorithmMapInfo {
     /**
      * 默认权重值
      */
-    private static final int DEFAULT_WEIGHT = 1;
+    private static final int DEFAULT_WEIGHT = 2;
 
     /**
      * 行数
@@ -48,8 +48,6 @@ public class AlgorithmMapInfo {
      */
     private static final Set<Coordinate> CAN_ARRIVED_POINTS = new HashSet<>();
 
-    private static Integer CAN_ARRIVED = 0;
-
     /**
      * 点数据，前8位点权重值，后4位是方向
      */
@@ -68,6 +66,9 @@ public class AlgorithmMapInfo {
                 setDir(j, i, 15);
             }
         }
+        BARRIER_POINTS.clear();
+        CLEAN_POINTS.clear();
+        CAN_ARRIVED_POINTS.clear();
     }
 
     /**
@@ -252,12 +253,17 @@ public class AlgorithmMapInfo {
         return BARRIER_POINTS;
     }
 
-    public static void setCanArrived(Integer canArrived) {
-        CAN_ARRIVED = canArrived;
+    public static void setCanArrivedPoints(Set<Coordinate> canArrivedPoints) {
+        CAN_ARRIVED_POINTS.clear();
+        CAN_ARRIVED_POINTS.addAll(canArrivedPoints);
     }
 
     public static Integer getCanArrived() {
-        return CAN_ARRIVED;
+        return CAN_ARRIVED_POINTS.size();
+    }
+
+    public static Set<Coordinate> getCanArrivedPoints() {
+        return CAN_ARRIVED_POINTS;
     }
 
     public static boolean addCleanPoint(Coordinate point) {

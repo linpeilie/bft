@@ -42,7 +42,6 @@ public class FileHelper {
 
     public static void appendResult(List<RoutePoint> routePoints, int type) {
         File resultFile = new File("result.txt");
-//        LOG.info("任务类型 [ {} ]写入数量[ {} ]", type, routePoints.size());
         if (TaskTypeEnum.BACK.getType() != type) {
             FileUtil.appendString("\n" + type, resultFile, StandardCharsets.UTF_8);
         }
@@ -53,6 +52,11 @@ public class FileHelper {
         if (TaskTypeEnum.BACK.getType() == type) {
             FileUtil.appendString("\n" + type, resultFile, StandardCharsets.UTF_8);
         }
+    }
+
+    public static void appendLine(String line) {
+        File resultFile = new File("result.txt");
+        FileUtil.appendString("\n" + line, resultFile, StandardCharsets.UTF_8);
     }
 
     private static String transLine(RoutePoint routePoint) {

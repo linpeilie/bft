@@ -68,8 +68,9 @@ public class CarContext {
         // 修改扫过的点的权重
         if (ArrayUtil.isNotEmpty(routePoint.getCleanPoints())) {
             for (Coordinate cleanPoint : routePoint.getCleanPoints()) {
+                AlgorithmMapInfo.addCleanPoint(cleanPoint);
                 if (AlgorithmMapInfo.addCleanPoint(cleanPoint)) {
-                    AlgorithmMapInfo.setWeight(routePoint.getX(), routePoint.getY(), 200);
+                    AlgorithmMapInfo.setWeight(routePoint.getX(), routePoint.getY(), AlgoStrategy.cleanWeight);
                 }
             }
         }
@@ -86,7 +87,7 @@ public class CarContext {
             addPath(chargePath, TaskTypeEnum.CHARGE);
             FileHelper.appendResult(ROUTE_POINTS, TaskTypeEnum.CHARGE.getType());
             ROUTE_POINTS.clear();
-            PASSED.set(0);
+//            PASSED.set(0);
             // 回到原来的点
             List<Coordinate> backPath = AStarAlgoFibonacci.getShortestPath(AlgorithmMapInfo.INIT_POINT, tempPoint);
             addPath(backPath, TaskTypeEnum.CLEANING);
@@ -128,4 +129,14 @@ public class CarContext {
         return ROUTE_POINTS;
     }
 
+    public static int passed() {
+        return PASSED.get();
+    }
+
+    public static void reset() {
+        CURRENT_POINT = AlgorithmMapInfo.INIT_POINT;
+        CURRENT_DIRECTION = PointDirectionEnum.NORTH.getDirection();
+        ROUTE_POINTS.clear();
+        PASSED.set(0);
+    }
 }
